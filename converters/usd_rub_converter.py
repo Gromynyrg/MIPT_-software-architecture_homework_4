@@ -1,23 +1,20 @@
-import requests
-from converters import CurrencyConverter
+from currency_converter import CurrencyConverter
+from rate import RateProvider
+
 
 class UsdRubConverter(CurrencyConverter):
-    def __init__(self):
-        self.rates = self.get_rates()
+    def __init__(self, rate_provider: RateProvider = None):
+        self.rate_provider = rate_provider or RateProvider()
+        self.supported_currency = "RUB"
 
-    def get_rates(self):
-        response = requests.get("https://api.exchangerate-api.com/v4/latest/USD")
-        data = response.json()
-        return data['rates']
-    
-    def convert_usd_to_eur(self, amount):
-        print('This is not USD to EUR converter')
+    def convert(self, amount: float, target_currency: str) -> float | None:
+        if target_currency != self.supported_currency:
+            self.rate_provider.logger.error(
+                f"Unsupported currency: {target_currency}. "
+                f"Supported: {self.supported_currency}"
+            )
+            return None
 
-    def convert_usd_to_gbp(self, amount):
-        print('This is not USD to GBP converter')
-
-    def convert_usd_to_rub(self, amount):
-        return amount * self.rates['RUB']
-
-    def convert_usd_to_cny(self, amount):
-        print('This is not USD to CNY converter')
+        if rates := self.rate_provider.get_rates():
+            return amount * rates.get(self.supported_currency, 0)
+        return None
